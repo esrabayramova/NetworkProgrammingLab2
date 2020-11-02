@@ -17,28 +17,33 @@ class server:
 
         while True:
             s, sockname = self.sock.accept()
-            data = s.recv(self.MAX_BYTES)   #receive the data
-            received = pickle.loads(data)   #process the data that the client sent
-            mode = received[0]
-            content_1 = received[1]   #main file
-            content_2 = received[2]   #either key file or json file based on the mode
+            try:
+                data = s.recv(self.MAX_BYTES)   #receive the data
+                received = pickle.loads(data)   #process the data that the client sent
+                mode = received[0]
+                content_1 = received[1]   #main file
+                content_2 = received[2]   #either key file or json file based on the mode
 
-            if mode == "change_text":
-                dctnry = json.loads(content_2)   #convert the content of the json file into dictionary
-                for old, new in dctnry.items():
-                    content_1 = content_1.replace(old, new)
+                if mode == "change_text":
+                    dctnry = json.loads(content_2)   #convert the content of the json file into dictionary
+                    for old, new in dctnry.items():
+                        content_1 = content_1.replace(old, new)
 
-                s.sendall(content_1.encode('ascii'))   #send back to the client
-                print(content_1)
+                    s.sendall(content_1.encode('ascii'))   #send back to the client
+                    print(content_1)
 
-            elif mode == "encode_decode":
-                key = content_2
-                xor = [chr(ord(a)^ord(b)) for a, b in zip(content_1, cycle(key))]   #XOR the file content with the key
-                coded = "".join(xor)
+                elif mode == "encode_decode":
+                    key = content_2
+                    xor = [chr(ord(a)^ord(b)) for a, b in zip(content_1, cycle(key))]   #XOR the file content with the key
+                    coded = "".join(xor)
 
-                s.sendall(coded.encode('ascii'))   #send back to the client
-                print(coded)
+                    s.sendall(coded.encode('ascii'))   #send back to the client
+                    print(coded)
 
+            except EOFError:
+                print("Could not receive a json file. ")   #the mode is "change_text", but the second file is not a json file
+
+            s.close()
 
 class client:
         MAX_BYTES = 655535
@@ -66,16 +71,25 @@ class client:
             data_to_send.append(content_1)
             data_to_send.append(content_2)
 
-            tosend = pickle.dumps(data_to_send)   #process the list (data) before sending
+            file_2_n = file_2.split('.')
+            ext = file_2_n[1]
 
-            self.sock.sendall(tosend)   #send to the server
+            if self.mode == "change_text" and ext != "json":
+                raise Exception("Expecting a json file. ")
 
-            final = self.sock.recv(self.MAX_BYTES)
+            else:
 
-            with open(file_1, "wb") as text_file:
-                text_file.write(final)   #write the final result that the server sent to the main file
+                tosend = pickle.dumps(data_to_send)   #process the list (data) before sending
 
-     
+                self.sock.sendall(tosend)   #send to the server
+
+                final = self.sock.recv(self.MAX_BYTES)
+
+                with open(file_1, "wb") as text_file:
+                    text_file.write(final)   #write the final result that the server sent to the main file
+
+            self.sock.close()
+
 if __name__ == "__main__":
         parser = argparse.ArgumentParser(description = "sending data by TCP")
         choices = {"client": client, "server": server}
