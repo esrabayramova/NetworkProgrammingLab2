@@ -1,0 +1,1 @@
+This is the key that will be used to XOR the text. #!@
