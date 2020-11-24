@@ -7,7 +7,7 @@ This is a client-server-based console app called "text_service". The server and 
 ## Installation
 
 ```
-git clone https://github.com/esrabayramova/NetworkProgrammingLab
+git clone https://github.com/esrabayramova/NetworkProgrammingLab2
 ```
 
 ## Usage
